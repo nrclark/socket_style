@@ -7,6 +7,8 @@ import socket
 import struct
 import select
 
+from socketstyle_common import TimeoutError
+
 class PointToPointServer:
     def __init__(self, host="127.0.0.1", port=50000):
         """Initializes an instance of PointToPointServer with
@@ -55,9 +57,19 @@ class PointToPointServer:
                 timeout = float(timeout)
 
         self.sock.settimeout(timeout)
-        self.client = self.sock.accept()[0]
+
+        try:
+            self.client = self.sock.accept()[0]
+        except Exception as e:
+            self.sock.settimeout(self.timeout)
+            if e == socket.timeout:
+                raise TimeoutError("Timed out waiting for a client connection.")
+            else:
+                raise e
+
         self.sock.settimeout(self.timeout)
         self.isConnected = True
+        return True
 
     def has_data(self):
         """Checks for data waiting in the receiver queue."""
@@ -66,7 +78,7 @@ class PointToPointServer:
         ready_items = select.select([self.client], [], [self.client], 0)
 
         if len(ready_items[2]) != 0:
-            raise IOError,"Exception checking for data."
+            raise IOError, "Exception checking for data."
 
         if len(ready_items[0]) != 0:
             return True
@@ -164,7 +176,16 @@ class PointToPointClient:
                 timeout = float(timeout)
 
         self.sock.settimeout(timeout)
-        self.sock.connect((self._host, self._port))
+
+        try:
+            self.sock.connect((self._host, self._port))
+        except Exception as e:
+            self.sock.settimeout(self.timeout)
+            if e == socket.timeout:
+                raise TimeoutError("Timed out waiting for a server connection.")
+            else:
+                raise e
+
         self.sock.settimeout(self.timeout)
         self.isConnected = True
 
@@ -173,7 +194,7 @@ class PointToPointClient:
         ready_items = select.select([self.sock], [], [self.sock], 0)
 
         if len(ready_items[2]) != 0:
-            raise IOError,"Exception checking for data."
+            raise IOError, "Exception checking for data."
 
         if len(ready_items[0]) != 0:
             return True
@@ -222,8 +243,10 @@ class PointToPointClient:
         self.sock.close()
         self.isConnected = False
 
+
 def main():
     return
+
 
 if __name__ == '__main__':
     main()
