@@ -68,6 +68,8 @@ class MulticastServer:
 
 class MulticastClient:
     """Provides a simple UDP-based multicast receiver."""
+    INADDR_ANY = '0.0.0.0'
+    
     def __init__(self, multicast_address='224.0.0.1',
                  multicast_port=10000):
         """Creates a new socket-based multicast receiver.
@@ -80,26 +82,25 @@ class MulticastClient:
         self._multicast_port = multicast_port
         self.sock = None
         self.isOpen = False
-        self.multicast = (self._multicast_address, self._multicast_port)
+        self.multicast = (self.INADDR_ANY, self._multicast_port)
 
     def open(self):
         """Opens the multicast socket for receiving."""
         if self.isOpen:
             return
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                                  socket.IPPROTO_UDP)
-        
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)        
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         except AttributeError:
             pass
         
-        self.sock.bind(self.multicast)
-        mreq = struct.pack("4sl", socket.inet_aton(self._multicast_address),
-                           socket.INADDR_ANY)
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+        mreq = socket.inet_aton(self._multicast_address) + socket.inet_aton(self.INADDR_ANY)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        
+        self.sock.bind(self.multicast)
         self.isOpen = True
 
     def has_data(self):

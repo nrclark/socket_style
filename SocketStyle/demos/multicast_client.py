@@ -2,6 +2,7 @@
 
 import sys
 import os
+import time
 
 script_path = os.path.realpath(__file__)
 script_dir = os.path.dirname(script_path)
@@ -19,7 +20,9 @@ def main():
     count = 0
     while 1:
         try:
-            print myRx.read()
+            if myRx.has_data():
+                print myRx.read()
+            time.sleep(0.05)
 
         except KeyboardInterrupt:
             count += 1
