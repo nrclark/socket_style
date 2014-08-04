@@ -11,7 +11,7 @@ import select
 class MulticastServer:
     """Provides a simple UDP-based multicast transmitter."""
     def __init__(self, multicast_address='239.255.1.1',
-                 multicast_port=10000, ttl=0):
+                 multicast_port=10000, ttl=1):
         """Creates a new socket-based multicast transmitter.
 
         :param multicast_address: Target multicast group address.
@@ -33,10 +33,21 @@ class MulticastServer:
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
                                   socket.IPPROTO_UDP)
+        
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        
         ttl_bin = struct.pack('=b', self._ttl)
+
 
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL,
                              ttl_bin)
+
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        except AttributeError:
+            pass
+                
         self.isOpen = True
 
     def transmit(self, data):
@@ -83,7 +94,13 @@ class MulticastClient:
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
                                   socket.IPPROTO_UDP)
+        
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        except AttributeError:
+            pass
+        
         self.sock.bind(self.multicast)
         mreq = struct.pack("4sl", socket.inet_aton(self._multicast_address),
                            socket.INADDR_ANY)
