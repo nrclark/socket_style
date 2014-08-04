@@ -97,7 +97,7 @@ class MulticastClient:
             pass
         
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
-        mreq = socket.inet_aton(self._multicast_address) + socket.inet_aton(self.INADDR_ANY)
+        mreq = socket.inet_aton(self._multicast_address) + socket.inet_aton("127.0.0.1")
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         
         self.sock.bind(self.multicast)
