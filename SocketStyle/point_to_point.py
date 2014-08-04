@@ -34,6 +34,13 @@ class PointToPointServer:
             return
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        except AttributeError:
+            pass
+        
         self.sock.bind((self._host, self._port))
         self.sock.listen(self._backlog)
         self.isOpen = True

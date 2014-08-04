@@ -10,7 +10,7 @@ import select
 
 class MulticastServer:
     """Provides a simple UDP-based multicast transmitter."""
-    def __init__(self, multicast_address='239.255.1.1',
+    def __init__(self, multicast_address='224.0.0.1',
                  multicast_port=10000, ttl=1):
         """Creates a new socket-based multicast transmitter.
 
@@ -31,23 +31,18 @@ class MulticastServer:
         if self.isOpen:
             return
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                                  socket.IPPROTO_UDP)
-        
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
-        ttl_bin = struct.pack('=b', self._ttl)
-
-
-        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL,
-                             ttl_bin)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         except AttributeError:
             pass
-                
+
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL,  struct.pack('=b', self._ttl))
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, struct.pack('=b', 1))
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,   socket.inet_aton("127.0.0.1"))         
+
         self.isOpen = True
 
     def transmit(self, data):
@@ -73,7 +68,7 @@ class MulticastServer:
 
 class MulticastClient:
     """Provides a simple UDP-based multicast receiver."""
-    def __init__(self, multicast_address='239.255.1.1',
+    def __init__(self, multicast_address='224.0.0.1',
                  multicast_port=10000):
         """Creates a new socket-based multicast receiver.
 
