@@ -4,13 +4,12 @@
 Various socket designs.
 """
 import socket
-import struct
 import select
 
 from socketstyle_common import TimeoutError
 
 class PointToPointServer:
-    def __init__(self, host="127.0.0.1", port=50000):
+    def __init__(self, host="127.0.0.1", port=50000, ttl=1):
         """Initializes an instance of PointToPointServer with
         various default values.
         :param host: Host IP to listen on.
@@ -25,7 +24,8 @@ class PointToPointServer:
         self.isOpen = False
         self.isConnected = False
         self.timeout = None
-
+        self._ttl = ttl
+    
     def open(self):
         """Opens a socket for listening. Connections to clients still need
         to be made by connect() before anything will work."""
@@ -34,7 +34,7 @@ class PointToPointServer:
             return
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, self._ttl)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -157,21 +157,23 @@ class PointToPointServer:
 
 
 class PointToPointClient:
-    def __init__(self, host="127.0.0.1", port=50000):
+    def __init__(self, host="127.0.0.1", port=50000, ttl=1):
         self._host = host
         self._port = port
         self._maxReceive = 4096
         self.sock = None
         self.isConnected = False
         self.timeout = None
-
+        self._ttl = ttl
+        
     def connect(self, timeout='default'):
         """Connects to a server socket."""
         if self.isConnected:
             return
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, self._ttl)
+        
         if type(timeout) == str:
             if timeout.lower().strip() == 'default':
                 timeout = self.timeout

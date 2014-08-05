@@ -4,14 +4,13 @@
 Various socket designs.
 """
 import socket
-import struct
 import select
-
 
 class MulticastServer:
     """Provides a simple UDP-based multicast transmitter."""
     def __init__(self, multicast_address='224.0.0.1',
-                 multicast_port=10000, ttl=1):
+                 multicast_port=10000, ttl=1,
+                 multicast_interface='127.0.0.1'):
         """Creates a new socket-based multicast transmitter.
 
         :param multicast_address: Target multicast group address.
@@ -24,7 +23,8 @@ class MulticastServer:
         self.sock = None
         self.isOpen = False
         self.multicast = (self._multicast_address, self._multicast_port)
-
+        self.ip_multicast_if = multicast_interface
+        
     def open(self):
         """Opens the multicast socket for writing."""
 
@@ -39,9 +39,9 @@ class MulticastServer:
         except AttributeError:
             pass
 
-        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL,  struct.pack('=b', self._ttl))
-        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, struct.pack('=b', 1))
-        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,   socket.inet_aton("127.0.0.1"))         
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, self._ttl)
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,   socket.inet_aton(self.ip_multicast_if))         
 
         self.isOpen = True
 
@@ -67,11 +67,10 @@ class MulticastServer:
 
 
 class MulticastClient:
-    """Provides a simple UDP-based multicast receiver."""
-    INADDR_ANY = '0.0.0.0'
-    
+    """Provides a simple UDP-based multicast receiver."""    
     def __init__(self, multicast_address='224.0.0.1',
-                 multicast_port=10000):
+                 multicast_port=10000, ttl=1,
+                 multicast_interface='127.0.0.1'):
         """Creates a new socket-based multicast receiver.
 
         :param multicast_address: Target multicast group address.
@@ -80,10 +79,13 @@ class MulticastClient:
         self._maxReceive = 4096
         self._multicast_address = multicast_address
         self._multicast_port = multicast_port
+        self._ttl = ttl
         self.sock = None
         self.isOpen = False
+        self.INADDR_ANY = '0.0.0.0'
         self.multicast = (self.INADDR_ANY, self._multicast_port)
-
+        self.ip_multicast_if = multicast_interface
+        
     def open(self):
         """Opens the multicast socket for receiving."""
         if self.isOpen:
@@ -96,8 +98,8 @@ class MulticastClient:
         except AttributeError:
             pass
         
-        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
-        mreq = socket.inet_aton(self._multicast_address) + socket.inet_aton("127.0.0.1")
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, self._ttl)
+        mreq = socket.inet_aton(self._multicast_address) + socket.inet_aton(self.ip_multicast_if)
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         
         self.sock.bind(self.multicast)
